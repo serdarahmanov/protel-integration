@@ -2,13 +2,12 @@ package com.limehousehotel.protelapi.service;
 
 import com.limehousehotel.protelapi.DTO.ProtelStayPayload;
 import com.limehousehotel.protelapi.clients.ProtelClient;
-import com.limehousehotel.protelapi.protelDtos.ReservationDto;
 import com.limehousehotel.protelapi.protelDtos.ReservationsResponseDto;
 import com.limehousehotel.protelapi.repos.ProtelStaysRepository;
 import com.limehousehotel.protelapi.repos.SyncStateRepository;
 import com.limehousehotel.protelapi.repos.WpUserRepository;
-import com.limehousehotel.protelapi.utility.DirectBookingChecker;
-import com.limehousehotel.protelapi.utility.ReservationToStayMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -16,28 +15,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 @Service
 public class ProtelReservationSyncJob {
+    private static final Logger log = LoggerFactory.getLogger(ProtelReservationSyncJob.class);
 
-
+    private final ProtelReservationsProcessor reservationsProcessor;
     private final ProtelClient protelClient;
     private final SyncStateRepository syncStateRepo;
     private final WpUserRepository wpUserRepo;
     private final ProtelStaysRepository staysRepo;
-
-    private final DirectBookingChecker directBookingChecker;
-
 
     private final int maxResponses;
     private final int overlapSeconds;
 
 
     public ProtelReservationSyncJob(
-            DirectBookingChecker directBookingChecker,
+            ProtelReservationsProcessor reservationsProcessor,
             ProtelClient protelClient,
             SyncStateRepository syncStateRepo,
             WpUserRepository wpUserRepo,
@@ -45,7 +41,7 @@ public class ProtelReservationSyncJob {
             @Value("${protel.max-responses:500}") int maxResponses,
             @Value("${protel.overlap-seconds:120}") int overlapSeconds
     ) {
-        this.directBookingChecker=directBookingChecker;
+        this.reservationsProcessor = reservationsProcessor;
         this.protelClient = protelClient;
         this.syncStateRepo = syncStateRepo;
         this.wpUserRepo = wpUserRepo;
@@ -79,37 +75,21 @@ public class ProtelReservationSyncJob {
             if (resp == null || resp.getReservations() == null || resp.getReservations().isEmpty()) {
                 break;
             }
-            for (ReservationDto r : resp.getReservations()) {
+            for (ProtelStayPayload payload : reservationsProcessor.extractDirectStays(resp)) {
 
-                // 1) Keep ONLY direct bookings (based on segmentation.distributionChannel allowlist)
-                if (!directBookingChecker.isDirectBooking(r)) {
-                    continue;
-                }
-
-
-
-                // 2) Map minimal Protel DTO -> DB payload
-                ProtelStayPayload payload = ReservationToStayMapper.toPayload(r);
-
-
-
-                // Must have protelReservationId + email because your DB requires them (guest_email NOT NULL, unique id)
-                if (payload.protelReservationId == null || payload.protelReservationId.isBlank()) {
-                    continue;
-                }
-                if (payload.guestEmail == null || payload.guestEmail.isBlank()) {
-                    continue;
-                }
 
 
                 // Normalize email for WP lookup
                 String email = payload.guestEmail.trim().toLowerCase();
-
-
-
                 // 3) Skip if email not linked to WP user (your rule)
                 Long wpUserId = wpUserRepo.findUserIdByEmail(email);
+
                 if (wpUserId == null) {
+                    log.info(
+                            "Skipping reservation {}: guest email not linked to WordPress user ({})",
+                            payload.protelReservationId,
+                            email
+                    );
                     continue;
                 }
 

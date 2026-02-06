@@ -32,10 +32,7 @@ protel:
   overlap-seconds: 600
   direct-booking:
     distribution-channels:
-          - "WEBSITE"
-          - "EMAIL"
-          - "PHONE"
-          - "WALKIN" # safety overlap to avoid missing same-second updates
+          - "WEB"
 
 
 

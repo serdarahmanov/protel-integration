@@ -35,6 +35,10 @@ public class ProtelReservationsProcessor {
 
         for (ReservationDto r : response.getReservations()) {
             if (!directBookingChecker.isDirectBooking(r)) {
+                String channel = (r != null && r.getSegmentation() != null)
+                        ? r.getSegmentation().getDistributionChannel()
+                        : null;
+                log.info("Skipping reservation: not a direct booking (distributionChannel={})", channel);
                 continue;
             }
 
