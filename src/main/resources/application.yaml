@@ -26,7 +26,7 @@ server:
 
 
 protel:
-  base-url: https://YOUR-PROTEL-BASE-URL
+  base-url: ${PROTEL_BASE_URL}
   api-key: ${PROTEL_API_KEY}
   max-responses: 500
   overlap-seconds: 600
@@ -37,8 +37,8 @@ protel:
 
 
 wordpress:
-  base-url: https://limehousehotel.com
-  award-endpoint: /wp-json/protel/v1/award-points
+  base-url: ${WP_BASE_URL}
+  award-endpoint: ${WP_AWARD_ENDPOINT}
   shared-secret: ${WP_SHARED_SECRET}
   timeout-seconds: 15
 
