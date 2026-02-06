@@ -14,7 +14,8 @@ public class WordPressPointsClient {
     public WordPressPointsClient(
             @Value("${wordpress.base-url}") String baseUrl,
             @Value("${wordpress.shared-secret}") String secret,
-            @Value("${wordpress.timeout-seconds:15}") long timeoutSeconds
+            @Value("${wordpress.timeout-seconds:15}") long timeoutSeconds,
+            @Value("${wordpress.award-endpoint}") String awardEndpoint
     ) {
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
@@ -22,15 +23,17 @@ public class WordPressPointsClient {
                 .build();
 
         this.timeout = Duration.ofSeconds(timeoutSeconds);
+        this.awardEnpoint=awardEndpoint;
     }
 
     private final Duration timeout;
+    private final String awardEnpoint;
 
     public void awardPoints(long wpUserId, String reservationId, String amountSpent, String currency) {
         var body = new AwardRequest(wpUserId, reservationId, amountSpent, currency);
 
         webClient.post()
-                .uri("/wp-json/protel/v1/award-points")
+                .uri(awardEnpoint)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
