@@ -6,8 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 
 @Service
 public class PointsAwardJob {
@@ -37,7 +36,7 @@ public class PointsAwardJob {
                 wpClient.awardPoints(stay.wpUserId(), stay.reservationId(), amountStr, currency);
 
                 // Prefer UTC for consistency
-                staysRepo.markAwarded(stay.stayId(), LocalDateTime.now(ZoneOffset.UTC));
+                staysRepo.markAwarded(stay.stayId(), Instant.now());
 
             } catch (Exception ex) {
                 // log and continue; it will retry next run

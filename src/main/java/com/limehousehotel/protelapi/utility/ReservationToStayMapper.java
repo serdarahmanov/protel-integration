@@ -5,8 +5,6 @@ import com.limehousehotel.protelapi.DTO.ProtelStayPayload;
 import com.limehousehotel.protelapi.protelDtos.ReservationDto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Objects;
 
 public class ReservationToStayMapper {
@@ -35,7 +33,7 @@ public class ReservationToStayMapper {
         out.resStatus = r.getResStatus();
 
         out.modifiedAt = (r.getLastModifyDateTime() != null)
-                ? LocalDateTime.ofInstant(r.getLastModifyDateTime().toInstant(), ZoneOffset.UTC)
+                ? r.getLastModifyDateTime().toInstant()
                 : null;
 
         return out;

@@ -3,7 +3,7 @@ package com.limehousehotel.protelapi.DTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class ProtelStayPayload {
 
@@ -18,5 +18,5 @@ public class ProtelStayPayload {
     public BigDecimal amountSpent;
     public String currency;
     public String resStatus;
-    public LocalDateTime modifiedAt;
+    public Instant modifiedAt;
 }

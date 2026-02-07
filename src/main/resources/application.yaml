@@ -28,7 +28,7 @@ server:
 protel:
   base-url: ${PROTEL_BASE_URL}
   api-key: ${PROTEL_API_KEY}
-  max-responses: 500
+  max-responses: 100
   overlap-seconds: 600
   direct-booking:
     distribution-channels:

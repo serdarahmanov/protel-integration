@@ -4,7 +4,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -28,7 +29,7 @@ public class ProtelStaysRepository {
             BigDecimal amountSpent,
             String currency,
             String resStatus,
-            LocalDateTime modifiedAt
+            Instant modifiedAt
     ) {
         // Normalize inputs for DB consistency
         String normalizedEmail = (guestEmail == null) ? null : guestEmail.trim().toLowerCase();
@@ -74,7 +75,7 @@ public class ProtelStaysRepository {
                 normalizedAmount,
                 normalizedCurrency,
                 resStatus,
-                modifiedAt
+                modifiedAt != null ? Timestamp.from(modifiedAt) : null
         );
     }
 
@@ -84,7 +85,7 @@ public class ProtelStaysRepository {
             String reservationId,
             BigDecimal amountSpent,
             String currency,
-            LocalDateTime modifiedAt
+            Instant modifiedAt
     ) {}
 
     /**
@@ -104,7 +105,7 @@ public class ProtelStaysRepository {
 
         return jdbc.query(sql, (rs, i) -> {
             var ts = rs.getTimestamp("modified_at");
-            LocalDateTime modified = (ts != null) ? ts.toLocalDateTime() : null;
+            Instant modified = (ts != null) ? ts.toInstant() : null;
 
             String cur = rs.getString("currency");
             if (cur == null || cur.isBlank()) cur = "GBP";
@@ -120,12 +121,12 @@ public class ProtelStaysRepository {
         });
     }
 
-    public void markAwarded(long stayId, LocalDateTime awardedAt) {
+    public void markAwarded(long stayId, Instant awardedAt) {
         jdbc.update("""
             UPDATE Xs0Jq_protel_stays
             SET points_awarded_at = ?
             WHERE id = ?
               AND points_awarded_at IS NULL
-            """, awardedAt, stayId);
+            """, awardedAt != null ? Timestamp.from(awardedAt) : null, stayId);
     }
 }

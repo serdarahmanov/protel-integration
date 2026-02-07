@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneOffset;
 
 @Service
@@ -38,7 +38,7 @@ public class ProtelReservationSyncJob {
             SyncStateRepository syncStateRepo,
             WpUserRepository wpUserRepo,
             ProtelStaysRepository staysRepo,
-            @Value("${protel.max-responses:500}") int maxResponses,
+            @Value("${protel.max-responses:100}") int maxResponses,
             @Value("${protel.overlap-seconds:120}") int overlapSeconds
     ) {
         this.reservationsProcessor = reservationsProcessor;
@@ -64,7 +64,7 @@ public class ProtelReservationSyncJob {
         var modifiedAfter = safetyStart.atOffset(ZoneOffset.UTC);
 
         Integer offsetId = null;
-        LocalDateTime maxModifiedSeen = last;
+        Instant maxModifiedSeen = last;
 
 
 
