@@ -53,7 +53,7 @@ public class ProtelReservationSyncJob {
 
 
 
-    @Scheduled(fixedDelayString = "PT5M")
+    @Scheduled(fixedDelayString = "${protel.sync-delay:PT5M}")
     @Transactional
     public void run() {
 
@@ -75,6 +75,20 @@ public class ProtelReservationSyncJob {
             if (resp == null || resp.getReservations() == null || resp.getReservations().isEmpty()) {
                 break;
             }
+           // 1) Track max modified timestamp for cursor update
+            for (var reservation : resp.getReservations()) {
+                var modifiedAt = reservation.getLastModifyDateTime();
+                if (modifiedAt == null) {
+                    continue;
+                }
+                var modifiedInstant = modifiedAt.toInstant();
+                if (modifiedInstant.isAfter(maxModifiedSeen)) {
+                    maxModifiedSeen = modifiedInstant;
+                }
+
+
+            }
+
             for (ProtelStayPayload payload : reservationsProcessor.extractDirectStays(resp)) {
 
 
@@ -93,11 +107,6 @@ public class ProtelReservationSyncJob {
                     continue;
                 }
 
-
-                // 4) Track max modified timestamp for cursor update
-                if (payload.modifiedAt != null && payload.modifiedAt.isAfter(maxModifiedSeen)) {
-                    maxModifiedSeen = payload.modifiedAt;
-                }
 
 
 

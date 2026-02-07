@@ -31,6 +31,8 @@ protel:
   base-url: ${PROTEL_BASE_URL}
   api-key: ${PROTEL_API_KEY}
   max-responses: 100
+  sync-delay: ${PROTEL_SYNC_DELAY:PT5M}
+  award-delay: ${PROTEL_AWARD_DELAY:PT5M}
   overlap-seconds: 600
   direct-booking:
     distribution-channels:

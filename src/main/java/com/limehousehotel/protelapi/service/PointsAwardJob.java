@@ -22,7 +22,7 @@ public class PointsAwardJob {
         this.wpClient = wpClient;
     }
 
-    @Scheduled(fixedDelayString = "PT5M")
+    @Scheduled(fixedDelayString = "${protel.award-delay:PT5M}")
     @Transactional
     public void run() {
         var batch = staysRepo.findCompletedNotAwarded();
