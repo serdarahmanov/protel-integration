@@ -29,6 +29,9 @@ public class ReservationToStayMapper {
 
         out.amountSpent = sumAmountSpent(r);
         out.currency = extractCurrency(r);
+        out.distributionChannel = (r != null && r.getSegmentation() != null)
+                ? r.getSegmentation().getDistributionChannel()
+                : null;
 
         out.resStatus = r.getResStatus();
 

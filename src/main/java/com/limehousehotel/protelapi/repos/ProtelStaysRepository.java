@@ -17,7 +17,15 @@ public class ProtelStaysRepository {
         this.jdbc = jdbc;
     }
 
-    public void upsertStay(
+    public enum StayUpsertAction {
+        INSERTED,
+        UPDATED,
+        UNCHANGED
+    }
+
+    public record StayUpsertResult(StayUpsertAction action, int rowsAffected) {}
+
+    public StayUpsertResult upsertStay(
             String protelReservationId,
             Long wpUserId,
             String guestEmail,
@@ -63,7 +71,7 @@ public class ProtelStaysRepository {
             modified_at    = VALUES(modified_at)
           """;
 
-        jdbc.update(sql,
+        int rowsAffected = jdbc.update(sql,
                 protelReservationId,
                 wpUserId,
                 normalizedEmail,
@@ -77,6 +85,14 @@ public class ProtelStaysRepository {
                 resStatus,
                 modifiedAt != null ? Timestamp.from(modifiedAt) : null
         );
+
+        StayUpsertAction action = switch (rowsAffected) {
+            case 1 -> StayUpsertAction.INSERTED;
+            case 2 -> StayUpsertAction.UPDATED;
+            default -> StayUpsertAction.UNCHANGED;
+        };
+
+        return new StayUpsertResult(action, rowsAffected);
     }
 
     public record StayToAward(

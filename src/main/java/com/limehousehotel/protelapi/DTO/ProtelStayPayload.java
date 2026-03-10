@@ -15,6 +15,7 @@ public class ProtelStayPayload {
     public String roomType;
     public Integer adults;
     public Integer children;
+    public String distributionChannel;
     public BigDecimal amountSpent;
     public String currency;
     public String resStatus;

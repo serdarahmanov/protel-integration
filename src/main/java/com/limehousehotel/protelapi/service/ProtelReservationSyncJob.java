@@ -64,6 +64,7 @@ public class ProtelReservationSyncJob {
         var modifiedAfter = safetyStart.atOffset(ZoneOffset.UTC);
 
         Integer offsetId = null;
+        int repeatedOffsetCount = 0;
         Instant maxModifiedSeen = last;
 
 
@@ -100,9 +101,10 @@ public class ProtelReservationSyncJob {
 
                 if (wpUserId == null) {
                     log.info(
-                            "Skipping reservation {}: guest email not linked to WordPress user ({})",
+                            "Skipping reservation {}: guest email not linked to WordPress user ({}) distributionChannel={}",
                             payload.protelReservationId,
-                            email
+                            email,
+                            payload.distributionChannel
                     );
                     continue;
                 }
@@ -112,7 +114,7 @@ public class ProtelReservationSyncJob {
 
                 // 5) Upsert into Xs0Jq_protel_stays
                 //    (id is auto; unique is protel_reservation_id)
-                staysRepo.upsertStay(
+                var upsertResult = staysRepo.upsertStay(
                         payload.protelReservationId,
                         wpUserId,
                         email,
@@ -127,6 +129,42 @@ public class ProtelReservationSyncJob {
                         payload.modifiedAt
                 );
 
+                if (upsertResult.action() == ProtelStaysRepository.StayUpsertAction.INSERTED) {
+                    log.info(
+                            "Inserted stay reservationId={} wpUserId={} email={} distributionChannel={} checkin={} checkout={} roomType={} adults={} children={} amountSpent={} currency={} resStatus={} modifiedAt={}",
+                            payload.protelReservationId,
+                            wpUserId,
+                            email,
+                            payload.distributionChannel,
+                            payload.checkinDate,
+                            payload.checkoutDate,
+                            payload.roomType,
+                            payload.adults,
+                            payload.children,
+                            payload.amountSpent != null ? payload.amountSpent : BigDecimal.ZERO,
+                            payload.currency,
+                            payload.resStatus,
+                            payload.modifiedAt
+                    );
+                } else if (upsertResult.action() == ProtelStaysRepository.StayUpsertAction.UPDATED) {
+                    log.info(
+                            "Updated stay reservationId={} wpUserId={} email={} distributionChannel={} checkin={} checkout={} roomType={} adults={} children={} amountSpent={} currency={} resStatus={} modifiedAt={}",
+                            payload.protelReservationId,
+                            wpUserId,
+                            email,
+                            payload.distributionChannel,
+                            payload.checkinDate,
+                            payload.checkoutDate,
+                            payload.roomType,
+                            payload.adults,
+                            payload.children,
+                            payload.amountSpent != null ? payload.amountSpent : BigDecimal.ZERO,
+                            payload.currency,
+                            payload.resStatus,
+                            payload.modifiedAt
+                    );
+                }
+
 
 
 
@@ -137,7 +175,23 @@ public class ProtelReservationSyncJob {
             // Pagination handling using messageHeader.moreDataIndicator/moreDataOffsetID
             ReservationsResponseDto.MessageHeaderDto header = resp.getMessageHeader();
             if (header != null && Boolean.TRUE.equals(header.getMoreDataIndicator())) {
-                offsetId = header.getMoreDataOffsetID();
+                Integer nextOffsetId = header.getMoreDataOffsetID();
+                if (nextOffsetId == null) {
+                    log.error("Stopping pagination: moreDataIndicator=true but moreDataOffsetID is null");
+                    break;
+                }
+                if (offsetId != null && offsetId.equals(nextOffsetId)) {
+                    repeatedOffsetCount++;
+                    if (repeatedOffsetCount > 3) {
+                        log.error("Stopping pagination: offsetID repeated more than 3 times (offsetID={}, repeats={})",
+                                nextOffsetId, repeatedOffsetCount);
+                        break;
+                    }
+                    log.warn("OffsetID repeated (offsetID={}, repeats={}); continuing", nextOffsetId, repeatedOffsetCount);
+                } else {
+                    repeatedOffsetCount = 0;
+                }
+                offsetId = nextOffsetId;
             } else {
                 break;
             }
